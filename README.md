@@ -16,7 +16,7 @@ To use the trained models for predictions:
 
 1. Download and unpack the zip file/ Clone the GitHub library 
 
-2. Set up the required environment `requirements.txt` file
+2. Create an environment with dependencies using `requirements.txt` file
 
 3. Prepare your input file, the molecules should be in SMILES format. For single molecule SMILES can be entered directly, for multiple molecules prepare a csv file 
 
