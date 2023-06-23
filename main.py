@@ -223,9 +223,11 @@ trained_model = joblib.load('moltox_pred.pkl')
 
 # Prediction
 print("The results are here...")
-pred=trained_model.predict(df_model)
-output_df=pd.concat([df,pd.DataFrame(pred)],axis=1)
-output_df.columns=['SMILES','Toxicity Score']
+pred = trained_model.predict_proba(df_model)
+pred_class1 = pred[:, 1]  # Extract the probabilities for class 1
+
+output_df = pd.concat([df, pd.DataFrame(pred_class1)], axis=1)
+output_df.columns = ['SMILES', 'Toxicity Score']
 print(output_df)
 output_df.to_csv("results.csv")
 
