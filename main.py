@@ -16,6 +16,7 @@ import zipfile
 import joblib
 import pickle
 import shutil
+import rdkit
 from rdkit.ML.Descriptors import Descriptors
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -23,6 +24,7 @@ from rdkit.Chem import Descriptors
 from rdkit.Chem import GraphDescriptors
 from rdkit.ML.Descriptors import MoleculeDescriptors
 from rdkit.Chem import rdFingerprintGenerator
+from model_tf import create_tf_model
 
 
 
@@ -42,14 +44,13 @@ if user_input=='1':
 elif user_input=='2':
     df_query=input("Enter path of your csv file with molecules in SMILES notation")
     df=pd.read_csv(df_query)
-    if df.columns!='SMILES':
-        df=pd.read_csv(df_query,names=["SMILES"])
-    
 # elif user_input=='':
 #     print('No input found')
 else:
     print('Enter input properly! Restart')
     exit()
+
+# In[4]:
 
 
 #convert into mol
@@ -74,17 +75,34 @@ for m in mol_list:
 
 descriptors= pd.DataFrame(des)
 descriptors.columns=nms
-## For Ipc descriptor, avg=True 
-#  ipc_avg: bool, optional (default True)
-#  If True, the IPC descriptor calculates with avg=True option.
-### Please see this issue: https://github.com/rdkit/rdkit/issues/1527.
 
 ipc=[]
 for i in df['SMILES']:
     smi = i 
     ipc.append(GraphDescriptors.Ipc(Chem.MolFromSmiles(smi),avg=True))
 dsc=descriptors.drop(['Ipc'],axis=1)
-descriptors=pd.concat([pd.DataFrame(ipc,columns=['Ipc']),dsc],axis=1)
+descriptors=pd.concat([pd.DataFrame(ipc,columns=['IPC']),dsc],axis=1)
+
+
+import joblib
+
+# Load the scaler
+scaler = joblib.load('scaler.pkl')
+numerical_columns=joblib.load('numerical_columns.pkl')
+
+# Select the numerical columns from descriptors
+descriptors_numerical = descriptors[numerical_columns]
+
+# Scale the numerical columns
+scaled_numerical = scaler.transform(descriptors_numerical)
+
+# Replace the scaled values in the descriptors DataFrame
+descriptors[numerical_columns] = scaled_numerical
+
+
+
+
+
 
 # Morgan Fingerprints
 mol_list_new=np.where([x for x in mol_list if str(x) != 'None'])
@@ -102,7 +120,7 @@ morgan_fp = morgan_fp.add_prefix('MorganFP')
 
 
 ## Preparation of fingerprint present in XML file
- 
+#wget.download("https://github.com/dataprofessor/padel/raw/main/fingerprints_xml.zip") 
 zObject=zipfile.ZipFile("fingerprints_xml.zip", "r")
 padel_path='Padel'
 if os.path.exists(padel_path):
@@ -198,8 +216,10 @@ df_model=combined_df[feature_list]
 df_model
 
 ## Load Model
-trained_model = joblib.load('MolToxPred_joblib')
+trained_model = joblib.load('moltox_pred.pkl')
 
+# Define the TensorFlow model
+#model_tf = create_tf_model()
 
 # Prediction
 print("The results are here...")
