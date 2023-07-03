@@ -28,4 +28,4 @@ To use the trained models for predictions:
 The `main.py` file will generate descriptors using RDKit and molecular fingerprints using Padelpy for a molecule. `fingerprints_xml.zip` will be parsed to generate the fingerprints,`feature_list.pkl` will perform the feature selection as described in the manucript and output will be individual fingerprint file with selected features in `Padel` folder. Toxicity prediction of the molecule will happen using the trained model `MolToxPred_joblib`and `results.csv` output will be created having toxicity score.
 
 ## Datasets:
-An example test set that can be used for prediction (in .csv format) is provided in `sample_SMILES`. The larger training and test SMILES dataset & external validation SMILES dataset is provided [here](https://doi.org/10.5281/zenodo.7792389).
+An example test set that can be used for prediction (in .csv format) is provided in `sample_SMILES`. The larger training and test SMILES dataset & external validation SMILES dataset is provided [here](https://doi.org/10.5281/zenodo.8106797).
