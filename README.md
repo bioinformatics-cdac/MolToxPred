@@ -15,7 +15,7 @@ MolToxPred is a machine learning based tool to predict toxicity scores of small 
 To use the trained models for predictions:
 
 1. Download and unpack the zip file/ Clone the GitHub library
-2. Download the model pickle file from this link https://drive.google.com/file/d/1RUFXEKWa79sVaLM0xIlW58W-nzOsL_YB/view?usp=sharing
+2. Download the model pickle file from this [link](https://drive.google.com/file/d/1RUFXEKWa79sVaLM0xIlW58W-nzOsL_YB/view?usp=sharing)
 
 3. Create an environment with dependencies using `requirements.txt` file
 
