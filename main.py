@@ -44,44 +44,62 @@ if user_input=='1':
 elif user_input=='2':
     df_query=input("Enter path of your csv file with molecules in SMILES notation")
     df=pd.read_csv(df_query)
-# elif user_input=='':
-#     print('No input found')
+
 else:
     print('Enter input properly! Restart')
     exit()
 
-# In[4]:
 
-
-#convert into mol
-mol_list=[]
+# Convert SMILES to Mol objects
+mol_list = []
 for i in df["SMILES"]:
-    mol=Chem.MolFromSmiles(i)
+    mol = Chem.MolFromSmiles(i)
+    if mol is None:
+        continue
     mol_list.append(mol)
-nms=[x[0] for x in Descriptors._descList]
 
+# Calculate descriptors
+nms = [x[0] for x in Descriptors._descList]
+descriptor_calculator = MoleculeDescriptors.MolecularDescriptorCalculator(nms)
+descriptors = []
 
-#calculate descriptors
-calc = MoleculeDescriptors.MolecularDescriptorCalculator(nms)
-des = []
-for m in mol_list:
-   if m is None: continue 
-   des.append(calc.CalcDescriptors(m))
-   f = open('desc.txt', "a")
-   X = calc.CalcDescriptors(m)
-   f.write( str(X) + "\n"  )
-   f.close ()
+for mol in mol_list:
+    if mol is None:
+        continue 
+    descriptor_values = descriptor_calculator.CalcDescriptors(mol)
+    descriptors.append(descriptor_values)
 
+    # Optionally write descriptors to a file
+    with open('desc.txt', "a") as f:
+        f.write(str(descriptor_values) + "\n")
 
-descriptors= pd.DataFrame(des)
-descriptors.columns=nms
+# Create a DataFrame for descriptors
+descriptors_df = pd.DataFrame(descriptors)
+descriptors_df.columns = nms
 
-ipc=[]
+# Calculate IPC descriptor
+ipc = []
 for i in df['SMILES']:
     smi = i 
-    ipc.append(GraphDescriptors.Ipc(Chem.MolFromSmiles(smi),avg=True))
-dsc=descriptors.drop(['Ipc'],axis=1)
-descriptors=pd.concat([pd.DataFrame(ipc,columns=['IPC']),dsc],axis=1)
+    mol = Chem.MolFromSmiles(smi)
+    if mol is None:
+        continue
+    ipc_value = GraphDescriptors.Ipc(mol, avg=True)
+    ipc.append(ipc_value)
+
+# Create a DataFrame for IPC
+ipc_df = pd.DataFrame(ipc, columns=['IPC'])
+
+# Combine descriptors and IPC into a single DataFrame
+descriptors= pd.concat([ipc_df, descriptors_df.drop(['Ipc'], axis=1)], axis=1)
+
+
+
+# Replace infinity values (inf) with a large float value (e.g., 1e9)
+descriptors.replace([np.inf, -np.inf], 1e9, inplace=True)
+
+# Replace NaN values with 0
+descriptors.fillna(0, inplace=True)
 
 
 import joblib
@@ -101,9 +119,6 @@ descriptors[numerical_columns] = scaled_numerical
 
 
 
-
-
-
 # Morgan Fingerprints
 mol_list_new=np.where([x for x in mol_list if str(x) != 'None'])
 mol_list_new = list(filter(None, mol_list))
@@ -116,8 +131,6 @@ morgan_fp=pd.DataFrame(vec1)
 morgan_fp = morgan_fp.add_prefix('MorganFP')
 
 ## calculate Fingerprints
-
-
 
 ## Preparation of fingerprint present in XML file
 #wget.download("https://github.com/dataprofessor/padel/raw/main/fingerprints_xml.zip") 
@@ -214,22 +227,55 @@ with open("feature_list.pkl", "rb") as fp:
 feature_list
 df_model=combined_df[feature_list]
 df_model
+# Impute missing values in df_model with zeros
+df_model= df_model.fillna(0)
 
 ## Load Model
 trained_model = joblib.load('moltox_pred.pkl')
-
-# Define the TensorFlow model
-#model_tf = create_tf_model()
 
 # Prediction
 print("The results are here...")
 pred = trained_model.predict_proba(df_model)
 pred_class1 = pred[:, 1]  # Extract the probabilities for class 1
 
-output_df = pd.concat([df, pd.DataFrame(pred_class1)], axis=1)
-output_df.columns = ['SMILES', 'Toxicity Score']
-print(output_df)
-output_df.to_csv("results.csv")
+# Ask the user for a custom prefix
+custom_prefix = input("Enter a custom prefix for the output file (without spaces): ")
+
+# Construct the output file name using the custom prefix
+output_filename = f"{custom_prefix}_results.csv"
+
+output_df = pd.concat([df, pd.DataFrame(pred_class1, columns=["Toxicity_Score"])], axis=1)
+
+
+# Load the structural alerts (SMARTS) 
+structural_alerts_df = pd.read_csv("tox21_alerts.csv")  
+structural_alerts = structural_alerts_df["SMARTS"].dropna().tolist()
+
+#function to check for substructure matches 
+def check_substructure_matching(row, alerts):
+    if row["Toxicity_Score"] < 0.5:
+        return "Not Applicable"
+    
+    matching_endpoints = []
+    mol = Chem.MolFromSmiles(row["SMILES"])
+    if mol is not None:
+        for alert in alerts:
+            pattern = Chem.MolFromSmarts(alert)
+            if mol.HasSubstructMatch(pattern):
+                matching_endpoint = structural_alerts_df[structural_alerts_df['SMARTS'] == alert]['Endpoint'].values[0]
+                matching_endpoints.append(matching_endpoint)
+    return ", ".join(set(matching_endpoints)) if matching_endpoints else "Not Applicable"
+
+
+# Apply the check_substructure_matching function to each row
+output_df["Matched_Endpoints"] = output_df.apply(check_substructure_matching, args=(structural_alerts,), axis=1)
+
+#Save the updated DataFrame to a CSV file
+output_df.to_csv(output_filename, index=False)
+
+
+
+
 
 
 
