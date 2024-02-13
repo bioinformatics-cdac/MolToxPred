@@ -40,7 +40,7 @@ if user_input=='1':
     query=input("Input your query molecule in SMILES notation in comma separated fashion: ")
     print(query)
     if query==" ":
-        print("No SMILES found! Restart")
+        print("No SMILES found! Restart ")
         exit()
     else:
         mols = query.split(",")
@@ -50,11 +50,11 @@ if user_input=='1':
             flag = True
         df["SMILES"] = mols
 elif user_input=='2':
-    df_query=input("Enter path of your csv file with molecules in SMILES notation")
+    df_query=input("Enter path of your csv file with molecules in SMILES notation: ")
     df=pd.read_csv(df_query)
 
 else:
-    print('Enter input properly! Restart')
+    print('Enter input properly! Restart ')
     exit()
 
 
