@@ -5,5 +5,6 @@ RUN apt update && apt install -y default-jre libgomp1 && \
     apt clean && rm -rf /var/lib/apt/lists/*
 
 COPY . /app/
-RUN export PATH=/app:$PATH
-WORKDIR /app
+RUN chmod +x /app/moltox
+ENV PATH=/app:$PATH
+# WORKDIR /app
