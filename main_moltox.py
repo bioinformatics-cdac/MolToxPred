@@ -232,7 +232,7 @@ combined_df =pd.concat([descriptors,concatenated_df,morgan_fp], axis=1)
 combined_df
 
 #unpickling features
-with open("feature_list_bon.pkl", "rb") as fp: 
+with open("feature_list.pkl", "rb") as fp: 
     feature_list = pickle.load(fp)
 
 feature_list
